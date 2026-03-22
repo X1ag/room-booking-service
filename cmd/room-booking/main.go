@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"log"
-	"runtime/debug"
+	"test-backend-1-X1ag/internal/auth"
 	"test-backend-1-X1ag/internal/booking"
 	"test-backend-1-X1ag/internal/config"
 	"test-backend-1-X1ag/internal/http/handlers"
@@ -64,6 +64,9 @@ func main() {
 	scheduleUsecase := schedule.NewSheduleUsecase(scheduleRepo, scheduleLogger)
 	bookingUsecase := booking.NewBookingUsecase(bookingRepo, bookingLogger)
 
+	jwtManager := auth.NewJWTManager(cfg.Auth)
+	authUsecase := auth.NewAuthUsecase(jwtManager, cfg.Auth, logger)
+
 	// init middleware
 	// TODO: add middleware 
 
@@ -72,6 +75,7 @@ func main() {
 	roomHandlers := handlers.NewRoomHandler(roomUsecase)
 	scheduleHandlers := handlers.NewScheduleHandler(scheduleUsecase)
 	bookingHandlers := handlers.NewBookingHandler(bookingUsecase)
+	authHandler := handlers.NewAuthHandler(authUsecase)
 	_ = slotHandlers
 	_ = roomHandlers
 	_ = scheduleHandlers
@@ -83,6 +87,7 @@ func main() {
 	r := gin.Default()
 
 	r.Handle("GET", "/_info", handlers.Info)
+	r.Handle("POST", "/dummyLogin", authHandler.DummyLogin)
 
 	if err := r.Run(cfg.HTTP.Addr()); err != nil {
 		log.Fatalf("run HTTP server: %v", err)

@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Config struct {
@@ -46,8 +48,8 @@ type DBConfig struct {
 type AuthConfig struct {
 	JWTSecret        string
 	TokenTTL         time.Duration
-	DummyAdminUserID string
-	DummyUserUserID  string
+	DummyAdminID uuid.UUID 
+	DummyUserID  uuid.UUID
 }
 
 type LoggerConfig struct {
@@ -120,6 +122,15 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	adminUUID, err := getUUID("DUMMY_ADMIN_ID", uuid.MustParse("11111111-1111-1111-1111-111111111111"))
+	if err != nil {
+		return Config{}, err
+	}
+	userUUID, err := getUUID("DUMMY_USER_ID", uuid.MustParse("22222222-2222-2222-2222-222222222222"))
+	if err != nil {
+		return Config{}, err
+	}
+
 	cfg := Config{
 		App: AppConfig{
 			Name: getString("APP_NAME", "room-booking"),
@@ -146,8 +157,8 @@ func Load() (Config, error) {
 		Auth: AuthConfig{
 			JWTSecret:        getString("JWT_SECRET", "local-dev-secret-change-me"),
 			TokenTTL:         tokenTTL,
-			DummyAdminUserID: getString("DUMMY_ADMIN_USER_ID", "11111111-1111-1111-1111-111111111111"),
-			DummyUserUserID:  getString("DUMMY_USER_USER_ID", "22222222-2222-2222-2222-222222222222"),
+			DummyAdminID: adminUUID,
+			DummyUserID:  userUUID,
 		},
 		Migrations: MigrationConfig{
 			Path: getString("MIGRATIONS_PATH", "file://migrations"),
@@ -220,10 +231,10 @@ func (c Config) Validate() error {
 	if c.DB.MaxConnLifetime <= 0 {
 		errs = append(errs, errors.New("DB_MAX_CONN_LIFETIME must be positive"))
 	}
-	if strings.TrimSpace(c.Auth.DummyAdminUserID) == "" {
+	if c.Auth.DummyAdminID == uuid.Nil {
 		errs = append(errs, errors.New("DUMMY_ADMIN_USER_ID must not be empty"))
 	}
-	if strings.TrimSpace(c.Auth.DummyUserUserID) == "" {
+	if c.Auth.DummyUserID == uuid.Nil {
 		errs = append(errs, errors.New("DUMMY_USER_USER_ID must not be empty"))
 	}
 	if strings.TrimSpace(c.Migrations.Path) == "" {
@@ -311,6 +322,20 @@ func getBool(key string, fallback bool) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("%s must be bool: %w", key, err)
 	}
+
+	return parsed, nil
+}
+
+func getUUID(key string, fallback uuid.UUID) (uuid.UUID, error) {
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback, nil
+	}
+
+	parsed, err := uuid.Parse(value)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("%s must be uuid: %w", key, err)
+	}	
 
 	return parsed, nil
 }
