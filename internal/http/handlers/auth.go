@@ -1,15 +1,17 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"test-backend-1-X1ag/internal/auth"
 	"test-backend-1-X1ag/internal/http/dto"
+	"test-backend-1-X1ag/internal/http/response"
 
 	"github.com/gin-gonic/gin"
 )
 
 type AuthHandler struct {
-	usecase *auth.AuthUsecase	
+	usecase *auth.AuthUsecase
 }
 
 func NewAuthHandler(usecase *auth.AuthUsecase) *AuthHandler {
@@ -21,22 +23,21 @@ func NewAuthHandler(usecase *auth.AuthUsecase) *AuthHandler {
 func (h *AuthHandler) DummyLogin(c *gin.Context) {
 	var req dto.DummyLoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code": http.StatusBadRequest,
-			"error": err.Error(),
-		})
+		response.JSONError(c, http.StatusBadRequest, response.ErrorCodeInvalidRequest, "invalid request")
 		return
 	}
 
 	token, err := h.usecase.DummyLogin(c.Request.Context(), req.Role)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code": http.StatusInternalServerError,
-			"error": err.Error(),
-		})
+		if errors.Is(err, auth.ErrInvalidRole) {
+			response.JSONError(c, http.StatusBadRequest, response.ErrorCodeInvalidRequest, err.Error())
+			return
+		}
+
+		response.JSONError(c, http.StatusInternalServerError, response.ErrorCodeInternal, "internal server error")
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, dto.TokenResponse{
 		Token: token,
 	})
