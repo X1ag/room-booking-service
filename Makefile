@@ -1,4 +1,4 @@
-.PHONY: env up down logs db-up db-down lint test-unit test-e2e test-with-db test-all test-cover
+.PHONY: env up down logs db-up db-down seed lint test-unit test-e2e test-with-db test-all test-cover
 
 GOBIN := $(shell go env GOPATH)/bin
 GOLANGCI_LINT := $(shell command -v golangci-lint 2>/dev/null || echo "$(GOBIN)/golangci-lint")
@@ -29,6 +29,9 @@ db-up: env
 db-down:
 	docker compose stop postgres
 
+seed: db-up env
+	docker compose exec -T postgres sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"' < seed/test_data.sql
+
 lint:
 	@if [ ! -x "$(GOLANGCI_LINT)" ]; then \
 		echo "golangci-lint not found"; \
@@ -50,4 +53,5 @@ test-with-db: db-up
 test-all: test-with-db
 
 test-cover: db-up
-	@$(GO_TEST_ENV) go test ./... -coverprofile=coverage.out -count=1
+	@$(GO_TEST_ENV) go test ./... -coverpkg=./... -coverprofile=coverage.out -covermode=atomic -count=1
+	@go tool cover -func=coverage.out | tail -n 1

@@ -12,6 +12,7 @@ import (
 
 	"test-backend-1-X1ag/internal/auth"
 	"test-backend-1-X1ag/internal/booking"
+	"test-backend-1-X1ag/internal/conference"
 	"test-backend-1-X1ag/internal/config"
 	"test-backend-1-X1ag/internal/http/handlers"
 	"test-backend-1-X1ag/internal/http/middleware"
@@ -56,11 +57,12 @@ func New(ctx context.Context, cfg config.Config, baseLogger *logger.ZerologLogge
 	roomRepo := postgres.NewRoomRepository(pool)
 	scheduleRepo := postgres.NewScheduleRepository(pool)
 	bookingRepo := postgres.NewBookingRepository(pool)
+	conferenceService := conference.NewMockService()
 
 	slotUsecase := slot.NewSlotUsecase(slotRepo, roomRepo, scheduleRepo, slotLogger)
 	roomUsecase := room.NewRoomUsecase(roomRepo, roomLogger)
 	scheduleUsecase := schedule.NewSheduleUsecase(scheduleRepo, roomRepo, scheduleLogger)
-	bookingUsecase := booking.NewBookingUsecase(bookingRepo, slotRepo, bookingLogger)
+	bookingUsecase := booking.NewBookingUsecase(bookingRepo, slotRepo, conferenceService, bookingLogger)
 
 	jwtManager := auth.NewJWTManager(cfg.Auth)
 	authUsecase := auth.NewAuthUsecase(jwtManager, cfg.Auth, baseLogger)

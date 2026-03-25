@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -21,6 +23,17 @@ func newTestServer(t *testing.T) *httptest.Server {
 	t.Helper()
 
 	gin.SetMode(gin.TestMode)
+
+	workingDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("get working dir: %v", err)
+	}
+
+	repoRoot := filepath.Clean(filepath.Join(workingDir, "..", ".."))
+	migrationsPath := "file://" + filepath.Join(repoRoot, "migrations")
+	if err := os.Setenv("MIGRATIONS_PATH", migrationsPath); err != nil {
+		t.Fatalf("set migrations path: %v", err)
+	}
 
 	cfg, err := config.Load()
 	if err != nil {

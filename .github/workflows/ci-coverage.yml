@@ -1,0 +1,79 @@
+name: CI Coverage
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: room_booking
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d room_booking"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      APP_ENV: test
+      HTTP_HOST: 127.0.0.1
+      HTTP_PORT: 8080
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: room_booking
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_SSLMODE: disable
+      MIGRATIONS_PATH: file://migrations
+      JWT_SECRET: local-dev-secret-change-me
+      JWT_TOKEN_TTL: 24h
+      DUMMY_ADMIN_ID: 11111111-1111-1111-1111-111111111111
+      DUMMY_USER_ID: 22222222-2222-2222-2222-222222222222
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run tests with coverage
+        run: go test ./... -coverpkg=./... -coverprofile=coverage.out -covermode=atomic -count=1
+
+      - name: Show coverage summary
+        run: |
+          go tool cover -func=coverage.out | tee coverage.txt
+          TOTAL_COVERAGE=$(tail -n 1 coverage.txt | awk '{print $3}')
+          echo "Total coverage: ${TOTAL_COVERAGE}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check coverage threshold
+        run: |
+          TOTAL_COVERAGE=$(go tool cover -func=coverage.out | tail -n 1 | awk '{print $3}' | tr -d '%')
+          awk "BEGIN {exit !(${TOTAL_COVERAGE} >= 40)}"
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage.out
+            coverage.txt

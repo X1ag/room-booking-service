@@ -3,6 +3,7 @@ package booking
 import (
 	"context"
 	"errors"
+	"test-backend-1-X1ag/internal/conference"
 	"test-backend-1-X1ag/internal/logger"
 	"test-backend-1-X1ag/internal/slot"
 	"time"
@@ -11,16 +12,18 @@ import (
 )
 
 type BookingUsecase struct {
-	bookingRepo Repository
-	slotRepo    slot.Repository
-	logger      *logger.ZerologLogger
+	bookingRepo       Repository
+	slotRepo          slot.Repository
+	conferenceService conference.Service
+	logger            *logger.ZerologLogger
 }
 
-func NewBookingUsecase(bookingRepo Repository, slotRepo slot.Repository, logger *logger.ZerologLogger) *BookingUsecase {
+func NewBookingUsecase(bookingRepo Repository, slotRepo slot.Repository, conferenceService conference.Service, logger *logger.ZerologLogger) *BookingUsecase {
 	return &BookingUsecase{
-		bookingRepo: bookingRepo,
-		slotRepo:    slotRepo,
-		logger:      logger,
+		bookingRepo:       bookingRepo,
+		slotRepo:          slotRepo,
+		conferenceService: conferenceService,
+		logger:            logger,
 	}
 }
 
@@ -35,11 +38,6 @@ func (u *BookingUsecase) Create(ctx context.Context, slotID string, createConfer
 	if err != nil {
 		u.logger.Error().Err(err).Str("user_id", userID).Msg("invalid user id format")
 		return Booking{}, ErrInvalidUserID
-	}
-	var link *string
-	if createConferenceLink {
-		generated := "https://meet.example.com/" + uuid.NewString()
-		link = &generated
 	}
 
 	slotExists, err := u.slotRepo.GetSlotByID(ctx, slotUUID)
@@ -64,6 +62,21 @@ func (u *BookingUsecase) Create(ctx context.Context, slotID string, createConfer
 	if bookingExists != (Booking{}) {
 		u.logger.Info().Str("slot_id", slotUUID.String()).Msg("slot is already booked")
 		return Booking{}, ErrSlotAlreadyBooked
+	}
+
+	var link *string
+	if createConferenceLink {
+		if u.conferenceService == nil {
+			u.logger.Error().Str("slot_id", slotUUID.String()).Msg("conference service is not configured")
+			return Booking{}, ErrConferenceUnavailable
+		}
+
+		generated, err := u.conferenceService.CreateLink(ctx, slotUUID, userUUID)
+		if err != nil {
+			u.logger.Error().Err(err).Str("slot_id", slotUUID.String()).Str("user_id", userUUID.String()).Msg("failed to create conference link")
+			return Booking{}, ErrConferenceUnavailable
+		}
+		link = &generated
 	}
 
 	bookingToCreate := Booking{

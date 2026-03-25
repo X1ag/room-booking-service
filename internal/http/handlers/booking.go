@@ -68,6 +68,10 @@ func (h *BookingHandler) Create() gin.HandlerFunc {
 				response.JSONError(c, http.StatusConflict, response.ErrorCodeSlotAlreadyBooked, "slot is already booked")
 				return
 			}
+			if errors.Is(err, booking.ErrConferenceUnavailable) {
+				response.JSONError(c, http.StatusServiceUnavailable, response.ErrorCodeInternal, "conference service unavailable")
+				return
+			}
 			response.JSONError(c, http.StatusInternalServerError, response.ErrorCodeInternal, "failed to create booking")
 			return
 		}
