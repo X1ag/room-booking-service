@@ -74,7 +74,7 @@ func main() {
 	bookingRepo := postgres.NewBookingRepository(pool)
 
 	// init usecases
-	slotUsecase := slot.NewSlotUsecase(slotRepo, slotLogger)
+	slotUsecase := slot.NewSlotUsecase(slotRepo, roomRepo, scheduleRepo, slotLogger)
 	roomUsecase := room.NewRoomUsecase(roomRepo, roomLogger)
 	scheduleUsecase := schedule.NewSheduleUsecase(scheduleRepo, roomRepo, scheduleLogger)
 	bookingUsecase := booking.NewBookingUsecase(bookingRepo, bookingLogger)
@@ -107,9 +107,14 @@ func main() {
 
 	// init routes
 	admin.POST("/rooms/create", roomHandlers.Create())	
-	authorized.GET("/rooms/list", roomHandlers.GetRooms())
-
 	admin.POST("/rooms/:roomId/schedule/create", scheduleHandlers.Create())
+	admin.GET("/bookings/list", bookingHandlers.GetUserBookings())
+	
+	authorized.GET("/rooms/list", roomHandlers.GetRooms())
+	authorized.GET("/rooms/:roomId/slots/list", slotHandlers.GetSlotsByRoomID())
+
+	user.POST("/bookings/create", bookingHandlers.Create())
+	user.POST("/bookings/:bookingId/cancel", bookingHandlers.Cancel())
 	
 	r.Handle("GET", "/_info", handlers.Info)
 	r.Handle("POST", "/dummyLogin", authHandler.DummyLogin)

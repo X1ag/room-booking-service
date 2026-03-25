@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS slots (
 	room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
 	start_at TIMESTAMPTZ NOT NULL,
 	end_at TIMESTAMPTZ NOT NULL,
-	created_at TIMESTAMPTZ NOT NULL,
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	UNIQUE(room_id, start_at, end_at),
 	CHECK(start_at < end_at)
 );

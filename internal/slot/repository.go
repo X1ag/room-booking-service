@@ -1,3 +1,13 @@
 package slot
 
-type Repository interface {}
+import (
+	"context"
+	"time"
+
+	"github.com/google/uuid"
+)
+
+type Repository interface {
+	GetByRoomID(ctx context.Context, roomID uuid.UUID, startDate time.Time, endDate time.Time) ([]Slot, error)
+	CreateSlot(ctx context.Context, slot Slot) error
+}
