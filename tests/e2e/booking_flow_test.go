@@ -72,11 +72,11 @@ func TestBookingFlow(t *testing.T) {
 	client := server.Client()
 	client.Timeout = 10 * time.Second
 
-	resp, body := doRequest(t, client, server.URL, http.MethodPost, "/dummyLogin", "", map[string]any{
+	statusCode, body := doRequest(t, client, server.URL, http.MethodPost, "/dummyLogin", "", map[string]any{
 		"role": "admin",
 	})
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("dummyLogin admin failed with status %d: %s", resp.StatusCode, string(body))
+	if statusCode != http.StatusOK {
+		t.Fatalf("dummyLogin admin failed with status %d: %s", statusCode, string(body))
 	}
 
 	var adminLogin tokenResponse
@@ -87,13 +87,13 @@ func TestBookingFlow(t *testing.T) {
 		t.Fatal("expected admin token")
 	}
 
-	resp, body = doRequest(t, client, server.URL, http.MethodPost, "/rooms/create", adminLogin.Token, map[string]any{
+	statusCode, body = doRequest(t, client, server.URL, http.MethodPost, "/rooms/create", adminLogin.Token, map[string]any{
 		"name":        fmt.Sprintf("room-e2e-%d", time.Now().UTC().UnixNano()),
 		"description": "e2e room",
 		"capacity":    6,
 	})
-	if resp.StatusCode != http.StatusCreated {
-		t.Fatalf("create room failed with status %d: %s", resp.StatusCode, string(body))
+	if statusCode != http.StatusCreated {
+		t.Fatalf("create room failed with status %d: %s", statusCode, string(body))
 	}
 
 	var createdRoom createRoomResponse
@@ -105,13 +105,13 @@ func TestBookingFlow(t *testing.T) {
 	}
 
 	scheduleDays := []int{1, 2, 3, 4, 5}
-	resp, body = doRequest(t, client, server.URL, http.MethodPost, "/rooms/"+createdRoom.Room.ID+"/schedule/create", adminLogin.Token, map[string]any{
+	statusCode, body = doRequest(t, client, server.URL, http.MethodPost, "/rooms/"+createdRoom.Room.ID+"/schedule/create", adminLogin.Token, map[string]any{
 		"daysOfWeek": scheduleDays,
 		"startTime":  "09:00",
 		"endTime":    "11:00",
 	})
-	if resp.StatusCode != http.StatusCreated {
-		t.Fatalf("create schedule failed with status %d: %s", resp.StatusCode, string(body))
+	if statusCode != http.StatusCreated {
+		t.Fatalf("create schedule failed with status %d: %s", statusCode, string(body))
 	}
 
 	var createdSchedule createScheduleResponse
@@ -122,11 +122,11 @@ func TestBookingFlow(t *testing.T) {
 		t.Fatalf("expected schedule room id %s, got %s", createdRoom.Room.ID, createdSchedule.Schedule.RoomID)
 	}
 
-	resp, body = doRequest(t, client, server.URL, http.MethodPost, "/dummyLogin", "", map[string]any{
+	statusCode, body = doRequest(t, client, server.URL, http.MethodPost, "/dummyLogin", "", map[string]any{
 		"role": "user",
 	})
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("dummyLogin user failed with status %d: %s", resp.StatusCode, string(body))
+	if statusCode != http.StatusOK {
+		t.Fatalf("dummyLogin user failed with status %d: %s", statusCode, string(body))
 	}
 
 	var userLogin tokenResponse
@@ -138,9 +138,9 @@ func TestBookingFlow(t *testing.T) {
 	}
 
 	targetDate := nextDateForWeekdays(scheduleDays, "09:00")
-	resp, body = doRequest(t, client, server.URL, http.MethodGet, "/rooms/"+createdRoom.Room.ID+"/slots/list?date="+targetDate, userLogin.Token, nil)
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("get slots failed with status %d: %s", resp.StatusCode, string(body))
+	statusCode, body = doRequest(t, client, server.URL, http.MethodGet, "/rooms/"+createdRoom.Room.ID+"/slots/list?date="+targetDate, userLogin.Token, nil)
+	if statusCode != http.StatusOK {
+		t.Fatalf("get slots failed with status %d: %s", statusCode, string(body))
 	}
 
 	var slots slotsResponse
@@ -151,12 +151,12 @@ func TestBookingFlow(t *testing.T) {
 		t.Fatalf("expected at least one slot for date %s", targetDate)
 	}
 
-	resp, body = doRequest(t, client, server.URL, http.MethodPost, "/bookings/create", userLogin.Token, map[string]any{
+	statusCode, body = doRequest(t, client, server.URL, http.MethodPost, "/bookings/create", userLogin.Token, map[string]any{
 		"slotId":               slots.Slots[0].ID,
 		"createConferenceLink": true,
 	})
-	if resp.StatusCode != http.StatusCreated {
-		t.Fatalf("create booking failed with status %d: %s", resp.StatusCode, string(body))
+	if statusCode != http.StatusCreated {
+		t.Fatalf("create booking failed with status %d: %s", statusCode, string(body))
 	}
 
 	var createdBooking createBookingResponse
@@ -176,12 +176,12 @@ func TestBookingFlow(t *testing.T) {
 		t.Fatal("expected conference link to be generated")
 	}
 
-	resp, body = doRequest(t, client, server.URL, http.MethodPost, "/bookings/create", userLogin.Token, map[string]any{
+	statusCode, body = doRequest(t, client, server.URL, http.MethodPost, "/bookings/create", userLogin.Token, map[string]any{
 		"slotId":               slots.Slots[0].ID,
 		"createConferenceLink": false,
 	})
-	if resp.StatusCode != http.StatusConflict {
-		t.Fatalf("expected 409 on duplicate booking, got %d: %s", resp.StatusCode, string(body))
+	if statusCode != http.StatusConflict {
+		t.Fatalf("expected 409 on duplicate booking, got %d: %s", statusCode, string(body))
 	}
 
 	var apiError errorEnvelope

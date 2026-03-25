@@ -39,7 +39,7 @@ func newTestServer(t *testing.T) *httptest.Server {
 	return server
 }
 
-func doRequest(t *testing.T, client *http.Client, serverURL, method, path, token string, body any) (*http.Response, []byte) {
+func doRequest(t *testing.T, client *http.Client, serverURL, method, path, token string, body any) (int, []byte) {
 	t.Helper()
 
 	var bodyReader io.Reader
@@ -69,12 +69,17 @@ func doRequest(t *testing.T, client *http.Client, serverURL, method, path, token
 	}
 
 	respBody, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
 	if err != nil {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Fatalf("close response body after read error: %v", closeErr)
+		}
 		t.Fatalf("read response body: %v", err)
 	}
+	if err := resp.Body.Close(); err != nil {
+		t.Fatalf("close response body: %v", err)
+	}
 
-	return resp, respBody
+	return resp.StatusCode, respBody
 }
 
 func nextDateForWeekdays(daysOfWeek []int, slotStart string) string {

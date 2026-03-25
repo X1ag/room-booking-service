@@ -24,7 +24,12 @@ func (r *ScheduleRepository) Create(ctx context.Context, schedule *schedule.Sche
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		rollbackErr := tx.Rollback(ctx)
+		if rollbackErr != nil && !errors.Is(rollbackErr, pgx.ErrTxClosed) {
+			return
+		}
+	}()
 
 	err = tx.QueryRow(ctx, `INSERT INTO schedules (id, room_id, start_time, end_time, created_at) VALUES ($1, $2, $3, $4, $5) RETURNING id`, schedule.ID, schedule.RoomID, schedule.StartTime, schedule.EndTime, schedule.CreatedAt).Scan(&schedule.ID)
 	if err != nil {

@@ -129,7 +129,13 @@ func runMigrations(cfg config.Config) error {
 		return fmt.Errorf("create migrate instance: %w", err)
 	}
 	defer func() {
-		_, _ = m.Close()
+		sourceErr, dbErr := m.Close()
+		if sourceErr != nil {
+			fmt.Printf("failed to close migration source: %v\n", sourceErr)
+		}
+		if dbErr != nil {
+			fmt.Printf("failed to close migration database: %v\n", dbErr)
+		}
 	}()
 
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
