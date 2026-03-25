@@ -6,6 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 
 	"test-backend-1-X1ag/internal/auth"
 	"test-backend-1-X1ag/internal/booking"
@@ -34,7 +36,7 @@ func main() {
 		return
 	}
 
-	// Init all loggers 
+	// Init loggers
 	appLogger := logger.WithFeature("app")
 	slotLogger := logger.WithFeature("slot")
 	roomLogger := logger.WithFeature("room")
@@ -52,9 +54,9 @@ func main() {
 
 	appLogger.Info().Msg("Connected to database")
 
-	// migrations
+	// init migrations
 	m, err := migrate.New(
-		"file://migrations",
+		cfg.Migrations.Path,
 		cfg.DB.DSN(),
 	)
 	if err != nil {
@@ -65,8 +67,7 @@ func main() {
 	}
 
 	appLogger.Info().Msg("Migrations applied successfully")
-	// TODO: add migrations from file://migrations
-	
+
 	// init repositories
 	slotRepo := postgres.NewSlotRepository(pool)
 	roomRepo := postgres.NewRoomRepository(pool)
@@ -77,7 +78,7 @@ func main() {
 	slotUsecase := slot.NewSlotUsecase(slotRepo, roomRepo, scheduleRepo, slotLogger)
 	roomUsecase := room.NewRoomUsecase(roomRepo, roomLogger)
 	scheduleUsecase := schedule.NewSheduleUsecase(scheduleRepo, roomRepo, scheduleLogger)
-	bookingUsecase := booking.NewBookingUsecase(bookingRepo, bookingLogger)
+	bookingUsecase := booking.NewBookingUsecase(bookingRepo, slotRepo, bookingLogger)
 
 	jwtManager := auth.NewJWTManager(cfg.Auth)
 	authUsecase := auth.NewAuthUsecase(jwtManager, cfg.Auth, logger)
@@ -90,7 +91,6 @@ func main() {
 	authHandler := handlers.NewAuthHandler(authUsecase)
 	_ = slotHandlers
 	_ = bookingHandlers
-
 
 	// init server
 	r := gin.Default()
@@ -106,16 +106,17 @@ func main() {
 	user.Use(middleware.RequireRole("user"))
 
 	// init routes
-	admin.POST("/rooms/create", roomHandlers.Create())	
+	admin.POST("/rooms/create", roomHandlers.Create())
 	admin.POST("/rooms/:roomId/schedule/create", scheduleHandlers.Create())
-	admin.GET("/bookings/list", bookingHandlers.GetUserBookings())
-	
+	admin.GET("/bookings/list", bookingHandlers.ListBookings())
+
 	authorized.GET("/rooms/list", roomHandlers.GetRooms())
 	authorized.GET("/rooms/:roomId/slots/list", slotHandlers.GetSlotsByRoomID())
 
 	user.POST("/bookings/create", bookingHandlers.Create())
 	user.POST("/bookings/:bookingId/cancel", bookingHandlers.Cancel())
-	
+	user.GET("/bookings/my", bookingHandlers.GetUserBookings())
+
 	r.Handle("GET", "/_info", handlers.Info)
 	r.Handle("POST", "/dummyLogin", authHandler.DummyLogin)
 

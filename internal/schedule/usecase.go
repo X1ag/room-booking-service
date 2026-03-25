@@ -12,30 +12,30 @@ import (
 
 type ScheduleUsecase struct {
 	scheduleRepo Repository
-	roomRepo room.Repository
-	logger *logger.ZerologLogger
+	roomRepo     room.Repository
+	logger       *logger.ZerologLogger
 }
 
 func NewSheduleUsecase(scheduleRepo Repository, roomRepo room.Repository, logger *logger.ZerologLogger) *ScheduleUsecase {
 	return &ScheduleUsecase{
 		scheduleRepo: scheduleRepo,
-		roomRepo: roomRepo,
-		logger: logger,
+		roomRepo:     roomRepo,
+		logger:       logger,
 	}
 }
 
 func (u *ScheduleUsecase) Create(ctx context.Context, roomID string, daysOfWeek []int, startTime, endTime string) (*Schedule, error) {
 	roomUUID, err := uuid.Parse(roomID)
 	if err != nil {
-		u.logger.Error().Err(err).Msg("invalid room id format")	
+		u.logger.Error().Err(err).Msg("invalid room id format")
 		return nil, ErrInvalidRoomID
 	}
 	start, err := time.Parse("15:04", startTime)
 	if err != nil {
 		u.logger.Error().Err(err).Msg("invalid start time format")
-		return nil, ErrInvalidTime 
+		return nil, ErrInvalidTime
 	}
-	
+
 	end, err := time.Parse("15:04", endTime)
 	if err != nil {
 		u.logger.Error().Err(err).Msg("invalid end time format")
@@ -90,11 +90,12 @@ func (u *ScheduleUsecase) Create(ctx context.Context, roomID string, daysOfWeek 
 	}
 
 	schedule := &Schedule{
-		RoomID: roomUUID,
+		ID:         uuid.New(),
+		RoomID:     roomUUID,
 		DaysOfWeek: daysOfWeek,
-		StartTime: startTime,
-		EndTime: endTime,
-		CreatedAt: time.Now().UTC(),
+		StartTime:  startTime,
+		EndTime:    endTime,
+		CreatedAt:  time.Now().UTC(),
 	}
 
 	createdSchedule, err := u.scheduleRepo.Create(ctx, schedule)

@@ -12,31 +12,31 @@ import (
 )
 
 type SlotUsecase struct {
-	slotRepo Repository
-	roomRepo room.Repository
+	slotRepo     Repository
+	roomRepo     room.Repository
 	scheduleRepo schedule.Repository
-	logger *logger.ZerologLogger
+	logger       *logger.ZerologLogger
 }
 
 func NewSlotUsecase(slotRepo Repository, roomRepo room.Repository, scheduleRepo schedule.Repository, logger *logger.ZerologLogger) *SlotUsecase {
 	return &SlotUsecase{
-		slotRepo: slotRepo,
-		roomRepo: roomRepo,
+		slotRepo:     slotRepo,
+		roomRepo:     roomRepo,
 		scheduleRepo: scheduleRepo,
-		logger: logger,
+		logger:       logger,
 	}
 }
 
 func (u *SlotUsecase) GetByRoomID(ctx context.Context, roomID string, date string) ([]Slot, error) {
 	if date == "" {
-		return nil, ErrDateRequired 
-	} 
+		return nil, ErrDateRequired
+	}
 
 	dateTime, err := time.Parse("2006-01-02", date)
 	if err != nil {
 		u.logger.Error().Err(err).Msg("invalid date format")
 		return nil, ErrInvalidDate
-	}	
+	}
 
 	roomUUID, err := uuid.Parse(roomID)
 	if err != nil {
@@ -108,9 +108,10 @@ func (u *SlotUsecase) GetByRoomID(ctx context.Context, roomID string, date strin
 			break
 		}
 		err := u.slotRepo.CreateSlot(ctx, Slot{
-			RoomID: roomUUID,
+			ID:        uuid.New(),
+			RoomID:    roomUUID,
 			StartTime: slotStart,
-			EndTime: slotEnd,
+			EndTime:   slotEnd,
 		})
 		if err != nil {
 			u.logger.Error().Err(err).Msg("failed to create slot")
@@ -118,7 +119,7 @@ func (u *SlotUsecase) GetByRoomID(ctx context.Context, roomID string, date strin
 		}
 		slotStart = slotEnd
 	}
-	
+
 	availableSlots, err := u.slotRepo.GetByRoomID(ctx, roomUUID, startAt, endAt)
 	if err != nil {
 		u.logger.Error().Err(err).Str("room_id", roomID).Msg("Failed to get slots by room ID")

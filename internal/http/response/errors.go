@@ -15,6 +15,7 @@ const (
 	ErrorCodeForbidden       ErrorCode = "FORBIDDEN"
 	ErrorCodeScheduleExists  ErrorCode = "SCHEDULE_EXISTS"
 	ErrorCodeInternal        ErrorCode = "INTERNAL_ERROR"
+	ErrorCodeSlotAlreadyBooked ErrorCode = "SLOT_ALREADY_BOOKED"
 )
 
 type ErrorDetails struct {

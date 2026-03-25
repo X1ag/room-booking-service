@@ -26,8 +26,7 @@ func (r *ScheduleRepository) Create(ctx context.Context, schedule *schedule.Sche
 	}
 	defer tx.Rollback(ctx)
 
-
-	err = tx.QueryRow(ctx, `INSERT INTO schedules (room_id, start_time, end_time, created_at) VALUES ($1, $2, $3, $4) RETURNING id`, schedule.RoomID, schedule.StartTime, schedule.EndTime, schedule.CreatedAt).Scan(&schedule.ID)
+	err = tx.QueryRow(ctx, `INSERT INTO schedules (id, room_id, start_time, end_time, created_at) VALUES ($1, $2, $3, $4, $5) RETURNING id`, schedule.ID, schedule.RoomID, schedule.StartTime, schedule.EndTime, schedule.CreatedAt).Scan(&schedule.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -43,13 +42,12 @@ func (r *ScheduleRepository) Create(ctx context.Context, schedule *schedule.Sche
 		return nil, err
 	}
 
-
 	return schedule, err
 }
 
 func (r *ScheduleRepository) GetByRoomID(ctx context.Context, roomID uuid.UUID) (*schedule.Schedule, error) {
 	var existing schedule.Schedule
-	err := r.pool.QueryRow(ctx, `SELECT id, room_id, start_time, end_time FROM schedules WHERE room_id = $1`, roomID).Scan(&existing.ID, &existing.RoomID, &existing.StartTime, &existing.EndTime)
+	err := r.pool.QueryRow(ctx, `SELECT id, room_id, to_char(start_time, 'HH24:MI'), to_char(end_time, 'HH24:MI') FROM schedules WHERE room_id = $1`, roomID).Scan(&existing.ID, &existing.RoomID, &existing.StartTime, &existing.EndTime)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, schedule.ErrScheduleNotFound

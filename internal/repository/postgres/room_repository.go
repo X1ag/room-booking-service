@@ -19,8 +19,8 @@ func NewRoomRepository(pool *pgxpool.Pool) *RoomRepository {
 }
 
 func (r *RoomRepository) Create(ctx context.Context, room *room.Room) (roomID uuid.UUID, err error) {
-	query := `INSERT INTO rooms (name, description, capacity, created_at) VALUES ($1, $2, $3, $4) RETURNING id`
-	err = r.pool.QueryRow(ctx, query, room.Name, room.Description, room.Capacity, room.CreatedAt).Scan(&room.ID)
+	query := `INSERT INTO rooms (id, name, description, capacity, created_at) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	err = r.pool.QueryRow(ctx, query, room.ID, room.Name, room.Description, room.Capacity, room.CreatedAt).Scan(&room.ID)
 	return room.ID, err
 }
 

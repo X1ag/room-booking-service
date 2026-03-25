@@ -53,3 +53,7 @@ CREATE TABLE IF NOT EXISTS bookings (
 CREATE INDEX IF NOT EXISTS idx_bookings_user_id ON bookings(user_id);
 
 CREATE INDEX IF NOT EXISTS idx_slots_room_id ON slots(room_id, start_at);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bookings_active_slot
+ON bookings(slot_id)
+WHERE status = 'active';

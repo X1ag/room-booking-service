@@ -10,13 +10,13 @@ import (
 )
 
 type RoomUsecase struct {
-	repo Repository
+	repo   Repository
 	logger *logger.ZerologLogger
 }
 
 func NewRoomUsecase(repo Repository, logger *logger.ZerologLogger) *RoomUsecase {
 	return &RoomUsecase{
-		repo: repo,
+		repo:   repo,
 		logger: logger,
 	}
 }
@@ -40,12 +40,13 @@ func (u *RoomUsecase) Create(ctx context.Context, name string, description *stri
 	}
 
 	room := &Room{
-		Name: name,
+		ID:          uuid.New(),
+		Name:        name,
 		Description: description,
-		Capacity: capacity,
-		CreatedAt: time.Now().UTC(),
+		Capacity:    capacity,
+		CreatedAt:   time.Now().UTC(),
 	}
-	dbContext, cancel := context.WithTimeout(ctx, 5 * time.Second)
+	dbContext, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	id, err := u.repo.Create(dbContext, room)
 	if err != nil {
@@ -59,9 +60,9 @@ func (u *RoomUsecase) Create(ctx context.Context, name string, description *stri
 }
 
 func (u *RoomUsecase) GetAll(ctx context.Context) ([]Room, error) {
-	dbContext, cancel := context.WithTimeout(ctx, 5 * time.Second)
+	dbContext, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	rooms, err :=u.repo.GetAll(dbContext)
+	rooms, err := u.repo.GetAll(dbContext)
 	if err != nil {
 		u.logger.Error().Err(err).Msg("failed to get all rooms")
 		return nil, err
@@ -77,7 +78,7 @@ func (u *RoomUsecase) GetByID(ctx context.Context, id string) (*Room, error) {
 		u.logger.Error().Err(err).Msg("invalid room id format")
 		return nil, ErrInvalidRoomID
 	}
-	dbContext, cancel := context.WithTimeout(ctx, 5 * time.Second)
+	dbContext, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	room, err := u.repo.GetByID(dbContext, roomUUID)
 	if err != nil {
