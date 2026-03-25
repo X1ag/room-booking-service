@@ -81,6 +81,20 @@ docker compose down -v
 docker compose up --build
 ```
 
+### 5. Остановка через Docker compose или Makefile 
+
+Если нужно остановить проект, то можно воспользоваться командой:
+
+```bash
+docker compose down -v
+```
+
+или
+
+```bash
+make down
+```
+
 ## Переменные окружения
 
 Основные переменные уже описаны в [`.env.example`](./.env.example).
