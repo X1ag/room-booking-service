@@ -11,8 +11,8 @@ type contextKey string
 const authInfoKey contextKey = "auth_info"
 
 type AuthInfo struct {
-	UserID uuid.UUID 
-	Role string
+	UserID uuid.UUID
+	Role   string
 }
 
 func WithAuthInfo(ctx context.Context, info AuthInfo) context.Context {

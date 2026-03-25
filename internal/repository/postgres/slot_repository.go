@@ -3,8 +3,9 @@ package postgres
 import (
 	"context"
 	"errors"
-	"test-backend-1-X1ag/internal/slot"
 	"time"
+
+	"test-backend-1-X1ag/internal/slot"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"

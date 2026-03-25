@@ -7,9 +7,8 @@ import (
 )
 
 type Slot struct {
-	ID uuid.UUID `json:"id"`
-	RoomID 	uuid.UUID `json:"roomId"`
+	ID        uuid.UUID `json:"id"`
+	RoomID    uuid.UUID `json:"roomId"`
 	StartTime time.Time `json:"start"`
 	EndTime   time.Time `json:"end"`
 }
-

@@ -46,9 +46,9 @@ type DBConfig struct {
 }
 
 type AuthConfig struct {
-	JWTSecret        string
-	TokenTTL         time.Duration
-	DummyAdminID uuid.UUID 
+	JWTSecret    string
+	TokenTTL     time.Duration
+	DummyAdminID uuid.UUID
 	DummyUserID  uuid.UUID
 }
 
@@ -155,8 +155,8 @@ func Load() (Config, error) {
 			MaxConnLifetime: dbMaxConnLifetime,
 		},
 		Auth: AuthConfig{
-			JWTSecret:        getString("JWT_SECRET", "local-dev-secret-change-me"),
-			TokenTTL:         tokenTTL,
+			JWTSecret:    getString("JWT_SECRET", "local-dev-secret-change-me"),
+			TokenTTL:     tokenTTL,
 			DummyAdminID: adminUUID,
 			DummyUserID:  userUUID,
 		},
@@ -335,7 +335,7 @@ func getUUID(key string, fallback uuid.UUID) (uuid.UUID, error) {
 	parsed, err := uuid.Parse(value)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("%s must be uuid: %w", key, err)
-	}	
+	}
 
 	return parsed, nil
 }

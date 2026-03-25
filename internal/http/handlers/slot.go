@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"net/http"
+
 	"test-backend-1-X1ag/internal/http/dto"
 	"test-backend-1-X1ag/internal/http/response"
 	"test-backend-1-X1ag/internal/room"
@@ -41,7 +42,7 @@ func (h *SlotHandler) GetSlotsByRoomID() gin.HandlerFunc {
 				response.JSONError(c, http.StatusBadRequest, response.ErrorCodeInvalidRequest, "invalid date format, expected YYYY-MM-DD")
 				return
 			}
-			
+
 			response.JSONError(c, http.StatusInternalServerError, response.ErrorCodeInternal, "failed to get slots")
 			return
 		}

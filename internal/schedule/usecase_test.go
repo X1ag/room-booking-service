@@ -12,7 +12,7 @@ import (
 )
 
 type fakeScheduleRepo struct {
-	createFn func(ctx context.Context, schedule *Schedule) (*Schedule, error)
+	createFn      func(ctx context.Context, schedule *Schedule) (*Schedule, error)
 	getByRoomIDFn func(ctx context.Context, roomID uuid.UUID) (*Schedule, error)
 }
 
@@ -142,4 +142,3 @@ func TestScheduleUsecaseCreate(t *testing.T) {
 		}
 	})
 }
-

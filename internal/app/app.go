@@ -21,6 +21,7 @@ import (
 	"test-backend-1-X1ag/internal/room"
 	"test-backend-1-X1ag/internal/schedule"
 	"test-backend-1-X1ag/internal/slot"
+	"test-backend-1-X1ag/internal/user"
 )
 
 type App struct {
@@ -57,15 +58,17 @@ func New(ctx context.Context, cfg config.Config, baseLogger *logger.ZerologLogge
 	roomRepo := postgres.NewRoomRepository(pool)
 	scheduleRepo := postgres.NewScheduleRepository(pool)
 	bookingRepo := postgres.NewBookingRepository(pool)
+	userRepo := postgres.NewUserRepository(pool)
 	conferenceService := conference.NewMockService()
 
 	slotUsecase := slot.NewSlotUsecase(slotRepo, roomRepo, scheduleRepo, slotLogger)
 	roomUsecase := room.NewRoomUsecase(roomRepo, roomLogger)
 	scheduleUsecase := schedule.NewSheduleUsecase(scheduleRepo, roomRepo, scheduleLogger)
 	bookingUsecase := booking.NewBookingUsecase(bookingRepo, slotRepo, conferenceService, bookingLogger)
+	userUsecase := user.NewUserUsecase(userRepo, baseLogger.WithFeature("user"))
 
 	jwtManager := auth.NewJWTManager(cfg.Auth)
-	authUsecase := auth.NewAuthUsecase(jwtManager, cfg.Auth, baseLogger)
+	authUsecase := auth.NewAuthUsecase(jwtManager, userUsecase, cfg.Auth, baseLogger.WithFeature("auth"))
 
 	slotHandlers := handlers.NewSlotHandler(slotUsecase)
 	roomHandlers := handlers.NewRoomHandler(roomUsecase)
@@ -119,6 +122,8 @@ func NewRouter(
 	user.POST("/bookings/:bookingId/cancel", bookingHandlers.Cancel())
 	user.GET("/bookings/my", bookingHandlers.GetUserBookings())
 
+	r.POST("/register", authHandler.Register())
+	r.POST("/login", authHandler.Login())
 	r.Handle("GET", "/_info", handlers.Info)
 	r.Handle("POST", "/dummyLogin", authHandler.DummyLogin)
 

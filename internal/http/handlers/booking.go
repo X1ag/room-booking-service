@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+
 	"test-backend-1-X1ag/internal/auth"
 	"test-backend-1-X1ag/internal/booking"
 	"test-backend-1-X1ag/internal/http/dto"
@@ -69,7 +70,7 @@ func (h *BookingHandler) Create() gin.HandlerFunc {
 				return
 			}
 			if errors.Is(err, booking.ErrConferenceUnavailable) {
-				response.JSONError(c, http.StatusServiceUnavailable, response.ErrorCodeInternal, "conference service unavailable")
+				response.JSONError(c, http.StatusInternalServerError, response.ErrorCodeInternal, "conference service unavailable")
 				return
 			}
 			response.JSONError(c, http.StatusInternalServerError, response.ErrorCodeInternal, "failed to create booking")

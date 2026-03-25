@@ -1,4 +1,5 @@
 [![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/xR-tWBKa)
+[![CI Lint](https://github.com/avito-internships/test-backend-1-X1ag/actions/workflows/ci-lint.yml/badge.svg)](https://github.com/avito-internships/test-backend-1-X1ag/actions/workflows/ci-lint.yml)
 [![CI Build](https://github.com/avito-internships/test-backend-1-X1ag/actions/workflows/ci-build.yml/badge.svg)](https://github.com/avito-internships/test-backend-1-X1ag/actions/workflows/ci-build.yml)
 [![CI Tests](https://github.com/avito-internships/test-backend-1-X1ag/actions/workflows/ci-tests.yml/badge.svg)](https://github.com/avito-internships/test-backend-1-X1ag/actions/workflows/ci-tests.yml)
 [![CI Coverage](https://github.com/avito-internships/test-backend-1-X1ag/actions/workflows/ci-coverage.yml/badge.svg)](https://github.com/avito-internships/test-backend-1-X1ag/actions/workflows/ci-coverage.yml)
@@ -24,13 +25,14 @@
 - [Переменные окружения](#переменные-окружения)
 - [Что реализовано](#что-реализовано)
 - [Стек](#стек)
+- [CI И Quality Gates](#ci-и-quality-gates)
 - [Архитектура](#архитектура)
 - [Принятые решения](#принятые-решения)
 - [Модель данных](#модель-данных)
 - [Smoke test](#smoke-test)
 - [Тесты](#тесты)
 - [Структура проекта](#структура-проекта-1)
-- [Сознательно принятые упрощения](#сознательно-принятые-упрощения)
+- [Дополнительные задания](#сознательно-принятые-упрощения)
 
 ## Запуск проекта
 
@@ -107,6 +109,18 @@ docker compose up --build
 - Docker Compose
 - JWT
 
+## CI И Quality Gates
+
+В GitHub Actions настроены отдельные workflow для проверки качества:
+- `CI Lint` запускает `golangci-lint` по конфигурации из `.golangci.yaml`;
+- `CI Build` проверяет, что проект собирается;
+- `CI Tests` запускает тесты;
+- `CI Coverage` считает покрытие и проверяет порог не ниже `40%`.
+
+Локально для линтера и тестов можно использовать `Makefile`:
+- `make lint`
+- `make test-cover`
+
 ## Архитектура
 
 Проект построен по слоям:
@@ -151,7 +165,7 @@ docker compose up --build
 
 ### Защита от двойного бронирования
 
-На уровне бизнес-логики перед созданием брони проверяется, что у слота нет активной брони.
+На уровне бизнес-логики перед созданием брони я проверяю, что у слота нет активной брони.
 
 Дополнительно защита есть на уровне БД:
 - создан уникальный partial index `idx_bookings_active_slot`
@@ -177,6 +191,13 @@ docker compose up --build
 Почему выбрал именно так:
 - usecase не знает, как именно строится ссылка, а только оркестрирует шаги;
 - если пользователь явно попросил conference link, система не создает "успешную" бронь без ссылки.
+### Запуск линтера
+
+Добавил проверку кода линтеров в Github Actions
+
+Почему выбрал именно так:
+- В крупных компаниях очень важно чтобы люди писали похожий и чистый код
+- Это уменьшает кол-во ошибок и приводит к единому code-style
 
 ### Идемпотентная отмена брони
 
@@ -190,8 +211,14 @@ docker compose up --build
 - `admin`: `11111111-1111-1111-1111-111111111111`
 - `user`: `22222222-2222-2222-2222-222222222222`
 
-Эти пользователи добавляются миграцией `000002_seed_dummy_users.up.sql`, чтобы бронирование работало корректно с foreign key на `users`. Чтобы добавить dummy users в базу, нужно написать команду 
-```bash 
+Эти пользователи добавляются автоматически миграцией `000002_seed_dummy_users.up.sql`, когда приложение стартует и применяет миграции.
+
+Команда `make seed` нужна для загрузки дополнительных тестовых данных из `seed/test_data.sql`:
+- тестовых переговорок;
+- расписаний для них.
+
+Команду можно запускать так:
+```bash
 make seed
 ```
 
@@ -232,7 +259,7 @@ make seed
 ## Тесты
 
 E2E-тесты сами поднимают только HTTP server через `httptest`.
-PostgreSQL нужно поднять отдельно перед запуском тестов, например через Docker Compose или будущий `Makefile`.
+PostgreSQL нужно поднять отдельно перед запуском тестов, например через Docker Compose или `Makefile`.
 
 В GitHub Actions отдельно настроен workflow на покрытие.
 Он считает `coverage.out` и падает, если общее покрытие становится ниже `40%`.
@@ -253,12 +280,13 @@ make test-cover
 $ make test-cover
 docker compose up -d --wait postgres
 [+] up 1/1
- ✔ Container room-booking-postgres Healthy                                                                                       0.5s
+ ✔ Container room-booking-postgres Healthy                                                                        5.9s
         test-backend-1-X1ag/cmd/room-booking            coverage: 0.0% of statements
         test-backend-1-X1ag/internal/app                coverage: 0.0% of statements
-        test-backend-1-X1ag/internal/auth               coverage: 0.0% of statements
-ok      test-backend-1-X1ag/internal/booking    0.155s  coverage: 77.4% of statements
+ok      test-backend-1-X1ag/internal/auth       0.584s  coverage: 1.7% of statements in ./...
+ok      test-backend-1-X1ag/internal/booking    0.800s  coverage: 5.7% of statements in ./...
 ?       test-backend-1-X1ag/internal/clock      [no test files]
+        test-backend-1-X1ag/internal/conference         coverage: 0.0% of statements
         test-backend-1-X1ag/internal/config             coverage: 0.0% of statements
 ?       test-backend-1-X1ag/internal/http/dto   [no test files]
         test-backend-1-X1ag/internal/http/handlers              coverage: 0.0% of statements
@@ -266,11 +294,12 @@ ok      test-backend-1-X1ag/internal/booking    0.155s  coverage: 77.4% of state
         test-backend-1-X1ag/internal/http/response              coverage: 0.0% of statements
         test-backend-1-X1ag/internal/logger             coverage: 0.0% of statements
         test-backend-1-X1ag/internal/repository/postgres                coverage: 0.0% of statements
-ok      test-backend-1-X1ag/internal/room       0.295s  coverage: 67.5% of statements
-ok      test-backend-1-X1ag/internal/schedule   0.412s  coverage: 88.2% of statements
-ok      test-backend-1-X1ag/internal/slot       0.402s  coverage: 69.2% of statements
-        test-backend-1-X1ag/internal/user               coverage: 0.0% of statements
-ok      test-backend-1-X1ag/tests/e2e   0.409s  coverage: [no statements]
+ok      test-backend-1-X1ag/internal/room       0.498s  coverage: 3.1% of statements in ./...
+ok      test-backend-1-X1ag/internal/schedule   0.921s  coverage: 4.9% of statements in ./...
+ok      test-backend-1-X1ag/internal/slot       0.709s  coverage: 4.9% of statements in ./...
+ok      test-backend-1-X1ag/internal/user       1.528s  coverage: 2.9% of statements in ./...
+ok      test-backend-1-X1ag/tests/e2e   1.115s  coverage: 47.5% of statements in ./...
+total:                                                                          (statements)            56.6%
 ```
 
 ## Структура проекта
@@ -287,22 +316,22 @@ ok      test-backend-1-X1ag/tests/e2e   0.409s  coverage: [no statements]
 - `internal/repository/postgres` — PostgreSQL-репозитории
 - `migrations` — SQL-миграции
 
-## Сознательно принятые упрощения
+## Дополнительные задания 
 
-Я сознательно сфокусировался на обязательной части задания.
-
-Не реализованы дополнительные задачи:
-- регистрация и логин по email/паролю;
-- нагрузочное тестирование;
-- swagger codegen.
-
-Если бы времени было больше, следующим шагом я бы:
-- сделал регистрацию и логин по email и паролю
-- создал openapi конфигурацию
-- сделал нагрузочное
-
-В остальном из дополнительных заданий были сделаны:
+Я не успел реализовать все дополнительные задания. 
+Список сделанных доп. заданий:
+- Регистрацию и логин по email и паролю
 - CI в Github Actions 
 - Конфигурация линтера (.golangci.yaml)
 - Makefile
 - Опциональное создание ссылки на конференцию при бронировании.
+
+Не реализованы дополнительные задачи:
+- нагрузочное тестирование;
+- swagger codegen.
+
+Если бы времени было больше, следующим шагом я бы:
+- создал openapi спецификацию 
+- сделал нагрузочное
+
+Все время было потрачено на основные эндпоинты и только после того как я убедился, что основной функционал работает я пошел делать доп. задания. 

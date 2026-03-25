@@ -3,10 +3,11 @@ package slot
 import (
 	"context"
 	"errors"
+	"time"
+
 	"test-backend-1-X1ag/internal/logger"
 	"test-backend-1-X1ag/internal/room"
 	"test-backend-1-X1ag/internal/schedule"
-	"time"
 
 	"github.com/google/uuid"
 )

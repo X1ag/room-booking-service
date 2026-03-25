@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"test-backend-1-X1ag/internal/config"
+
 	"github.com/rs/zerolog"
 )
 

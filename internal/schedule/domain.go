@@ -7,10 +7,10 @@ import (
 )
 
 type Schedule struct {
-	ID   uuid.UUID `json:"id"`
-	RoomID uuid.UUID `json:"roomId"`
-	StartTime string `json:"startTime"`
-	EndTime string `json:"endTime"`
-	DaysOfWeek []int `json:"daysOfWeek"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID         uuid.UUID `json:"id"`
+	RoomID     uuid.UUID `json:"roomId"`
+	StartTime  string    `json:"startTime"`
+	EndTime    string    `json:"endTime"`
+	DaysOfWeek []int     `json:"daysOfWeek"`
+	CreatedAt  time.Time `json:"createdAt"`
 }

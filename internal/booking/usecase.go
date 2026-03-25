@@ -3,10 +3,11 @@ package booking
 import (
 	"context"
 	"errors"
+	"time"
+
 	"test-backend-1-X1ag/internal/conference"
 	"test-backend-1-X1ag/internal/logger"
 	"test-backend-1-X1ag/internal/slot"
-	"time"
 
 	"github.com/google/uuid"
 )

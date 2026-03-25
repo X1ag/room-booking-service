@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+
 	"test-backend-1-X1ag/internal/auth"
 	"test-backend-1-X1ag/internal/http/response"
 

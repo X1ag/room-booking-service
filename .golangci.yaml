@@ -1,9 +1,5 @@
 version: "2"
 
-run:
-  timeout: 5m
-  tests: true
-
 linters:
   default: none
   enable:
@@ -19,6 +15,11 @@ linters:
       check-type-assertions: true
       check-blank: true
 
-issues:
-  max-issues-per-linter: 0
-  max-same-issues: 0
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - test-backend-1-X1ag

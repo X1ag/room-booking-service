@@ -5,13 +5,13 @@ import (
 )
 
 type CreateRoomRequest struct {
-	Name        string `json:"name" binding:"required"`
+	Name        string  `json:"name" binding:"required"`
 	Description *string `json:"description"`
 	Capacity    *int    `json:"capacity"`
 }
 
 type CreateRoomResponse struct {
-	Room room.Room `json:"room"` 
+	Room room.Room `json:"room"`
 }
 
 type GetRoomsResponse struct {

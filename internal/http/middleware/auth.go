@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"strings"
+
 	"test-backend-1-X1ag/internal/auth"
 	"test-backend-1-X1ag/internal/http/response"
 	"test-backend-1-X1ag/internal/logger"
@@ -12,7 +13,7 @@ import (
 
 func AuthMiddleware(jwtManager auth.TokenManager, logger *logger.ZerologLogger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		header := c.GetHeader("Authorization")	
+		header := c.GetHeader("Authorization")
 		if header == "" {
 			logger.Error().Msg("missing authorization header")
 			response.JSONError(c, http.StatusUnauthorized, response.ErrorCodeUnauthorized, "missing authorization header")
@@ -30,15 +31,15 @@ func AuthMiddleware(jwtManager auth.TokenManager, logger *logger.ZerologLogger) 
 
 		claims, err := jwtManager.Parse(token)
 		if err != nil {
-			logger.Error().Err(err).Msg("invalid token")	
+			logger.Error().Err(err).Msg("invalid token")
 			response.JSONError(c, http.StatusUnauthorized, response.ErrorCodeUnauthorized, "invalid token")
-			c.Abort()	
+			c.Abort()
 			return
 		}
 
 		info := auth.AuthInfo{
 			UserID: claims.UserID,
-			Role: claims.Role,
+			Role:   claims.Role,
 		}
 
 		ctx := auth.WithAuthInfo(c.Request.Context(), info)

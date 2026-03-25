@@ -11,8 +11,8 @@ import (
 )
 
 type fakeRoomRepo struct {
-	createFn func(ctx context.Context, room *Room) (uuid.UUID, error)
-	getAllFn func(ctx context.Context) ([]Room, error)
+	createFn  func(ctx context.Context, room *Room) (uuid.UUID, error)
+	getAllFn  func(ctx context.Context) ([]Room, error)
 	getByIDFn func(ctx context.Context, id uuid.UUID) (*Room, error)
 }
 
@@ -105,4 +105,3 @@ func TestRoomUsecaseGetByID(t *testing.T) {
 		}
 	})
 }
-

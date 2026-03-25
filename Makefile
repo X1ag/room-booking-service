@@ -29,7 +29,7 @@ db-up: env
 db-down:
 	docker compose stop postgres
 
-seed: db-up env
+seed: up env
 	docker compose exec -T postgres sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"' < seed/test_data.sql
 
 lint:
