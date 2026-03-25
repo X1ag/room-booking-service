@@ -81,7 +81,7 @@ docker compose down -v
 docker compose up --build
 ```
 
-### 5. Остановка через Docker compose или Makefile 
+### 5. Остановка через Docker Compose или Makefile 
 
 Если нужно остановить проект, то можно воспользоваться командой:
 
