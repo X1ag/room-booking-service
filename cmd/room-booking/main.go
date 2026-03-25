@@ -2,23 +2,15 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
+	"net/http"
+	"os/signal"
+	"syscall"
 
-	"github.com/gin-gonic/gin"
-	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
-
-	"test-backend-1-X1ag/internal/auth"
-	"test-backend-1-X1ag/internal/booking"
+	"test-backend-1-X1ag/internal/app"
 	"test-backend-1-X1ag/internal/config"
-	"test-backend-1-X1ag/internal/http/handlers"
-	"test-backend-1-X1ag/internal/http/middleware"
 	"test-backend-1-X1ag/internal/logger"
-	"test-backend-1-X1ag/internal/repository/postgres"
-	"test-backend-1-X1ag/internal/room"
-	"test-backend-1-X1ag/internal/schedule"
-	"test-backend-1-X1ag/internal/slot"
 )
 
 func main() {
@@ -30,97 +22,45 @@ func main() {
 		log.Fatalf("load config: %v", err)
 	}
 
-	logger, err := logger.NewZerologLogger(cfg.Logger)
+	baseLogger, err := logger.NewZerologLogger(cfg.Logger)
 	if err != nil {
 		log.Panicln("cant create logger, err: ", err)
 		return
 	}
 
-	// Init loggers
-	appLogger := logger.WithFeature("app")
-	slotLogger := logger.WithFeature("slot")
-	roomLogger := logger.WithFeature("room")
-	scheduleLogger := logger.WithFeature("schedule")
-	bookingLogger := logger.WithFeature("booking")
-
-	appLogger.Info().Msg("Loggers with features created")
-
-	appLogger.Info().Msg("Connecting to database...")
-	pool, err := postgres.ConnectPool(ctx, cfg.DB)
+	application, err := app.New(ctx, cfg, baseLogger)
 	if err != nil {
-		log.Fatalf("connect postgres: %v", err)
+		log.Fatalf("create app: %v", err)
 	}
-	defer pool.Close()
+	defer application.Close()
 
-	appLogger.Info().Msg("Connected to database")
-
-	// init migrations
-	m, err := migrate.New(
-		cfg.Migrations.Path,
-		cfg.DB.DSN(),
-	)
-	if err != nil {
-		log.Fatalf("create migrate instance: %v", err)
-	}
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		log.Fatalf("run migrations: %v", err)
+	srv := &http.Server{
+		Addr:         cfg.HTTP.Addr(),
+		Handler:      application.Router,
+		ReadTimeout:  cfg.HTTP.ReadTimeout,
+		WriteTimeout: cfg.HTTP.WriteTimeout,
 	}
 
-	appLogger.Info().Msg("Migrations applied successfully")
+	go func() {
+		application.Logger.Info().Str("addr", cfg.HTTP.Addr()).Msg("HTTP server started")
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("run HTTP server: %v", err)
+		}
+	}()
 
-	// init repositories
-	slotRepo := postgres.NewSlotRepository(pool)
-	roomRepo := postgres.NewRoomRepository(pool)
-	scheduleRepo := postgres.NewScheduleRepository(pool)
-	bookingRepo := postgres.NewBookingRepository(pool)
+	shutdownCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
-	// init usecases
-	slotUsecase := slot.NewSlotUsecase(slotRepo, roomRepo, scheduleRepo, slotLogger)
-	roomUsecase := room.NewRoomUsecase(roomRepo, roomLogger)
-	scheduleUsecase := schedule.NewSheduleUsecase(scheduleRepo, roomRepo, scheduleLogger)
-	bookingUsecase := booking.NewBookingUsecase(bookingRepo, slotRepo, bookingLogger)
+	<-shutdownCtx.Done()
+	application.Logger.Info().Msg("shutdown signal received")
 
-	jwtManager := auth.NewJWTManager(cfg.Auth)
-	authUsecase := auth.NewAuthUsecase(jwtManager, cfg.Auth, logger)
+	ctxTimeout, cancelShutdown := context.WithTimeout(context.Background(), cfg.HTTP.ShutdownTimeout)
+	defer cancelShutdown()
 
-	// init handlers
-	slotHandlers := handlers.NewSlotHandler(slotUsecase)
-	roomHandlers := handlers.NewRoomHandler(roomUsecase)
-	scheduleHandlers := handlers.NewScheduleHandler(scheduleUsecase)
-	bookingHandlers := handlers.NewBookingHandler(bookingUsecase)
-	authHandler := handlers.NewAuthHandler(authUsecase)
-	_ = slotHandlers
-	_ = bookingHandlers
-
-	// init server
-	r := gin.Default()
-
-	// init middleware
-	authorized := r.Group("/")
-	authorized.Use(middleware.AuthMiddleware(jwtManager, appLogger))
-
-	admin := authorized.Group("/")
-	admin.Use(middleware.RequireRole("admin"))
-
-	user := authorized.Group("/")
-	user.Use(middleware.RequireRole("user"))
-
-	// init routes
-	admin.POST("/rooms/create", roomHandlers.Create())
-	admin.POST("/rooms/:roomId/schedule/create", scheduleHandlers.Create())
-	admin.GET("/bookings/list", bookingHandlers.ListBookings())
-
-	authorized.GET("/rooms/list", roomHandlers.GetRooms())
-	authorized.GET("/rooms/:roomId/slots/list", slotHandlers.GetSlotsByRoomID())
-
-	user.POST("/bookings/create", bookingHandlers.Create())
-	user.POST("/bookings/:bookingId/cancel", bookingHandlers.Cancel())
-	user.GET("/bookings/my", bookingHandlers.GetUserBookings())
-
-	r.Handle("GET", "/_info", handlers.Info)
-	r.Handle("POST", "/dummyLogin", authHandler.DummyLogin)
-
-	if err := r.Run(cfg.HTTP.Addr()); err != nil {
-		log.Fatalf("run HTTP server: %v", err)
+	if err := srv.Shutdown(ctxTimeout); err != nil {
+		application.Logger.Error().Err(err).Msg("graceful shutdown failed")
+		return
 	}
+
+	application.Logger.Info().Msg("http server stopped gracefully")
 }
