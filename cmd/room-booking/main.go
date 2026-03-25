@@ -3,17 +3,20 @@ package main
 import (
 	"context"
 	"log"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-migrate/migrate/v4"
+
 	"test-backend-1-X1ag/internal/auth"
 	"test-backend-1-X1ag/internal/booking"
 	"test-backend-1-X1ag/internal/config"
 	"test-backend-1-X1ag/internal/http/handlers"
+	"test-backend-1-X1ag/internal/http/middleware"
 	"test-backend-1-X1ag/internal/logger"
 	"test-backend-1-X1ag/internal/repository/postgres"
 	"test-backend-1-X1ag/internal/room"
 	"test-backend-1-X1ag/internal/schedule"
 	"test-backend-1-X1ag/internal/slot"
-
-	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -50,6 +53,18 @@ func main() {
 	appLogger.Info().Msg("Connected to database")
 
 	// migrations
+	m, err := migrate.New(
+		"file://migrations",
+		cfg.DB.DSN(),
+	)
+	if err != nil {
+		log.Fatalf("create migrate instance: %v", err)
+	}
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		log.Fatalf("run migrations: %v", err)
+	}
+
+	appLogger.Info().Msg("Migrations applied successfully")
 	// TODO: add migrations from file://migrations
 	
 	// init repositories
@@ -61,14 +76,11 @@ func main() {
 	// init usecases
 	slotUsecase := slot.NewSlotUsecase(slotRepo, slotLogger)
 	roomUsecase := room.NewRoomUsecase(roomRepo, roomLogger)
-	scheduleUsecase := schedule.NewSheduleUsecase(scheduleRepo, scheduleLogger)
+	scheduleUsecase := schedule.NewSheduleUsecase(scheduleRepo, roomRepo, scheduleLogger)
 	bookingUsecase := booking.NewBookingUsecase(bookingRepo, bookingLogger)
 
 	jwtManager := auth.NewJWTManager(cfg.Auth)
 	authUsecase := auth.NewAuthUsecase(jwtManager, cfg.Auth, logger)
-
-	// init middleware
-	// TODO: add middleware 
 
 	// init handlers
 	slotHandlers := handlers.NewSlotHandler(slotUsecase)
@@ -77,15 +89,28 @@ func main() {
 	bookingHandlers := handlers.NewBookingHandler(bookingUsecase)
 	authHandler := handlers.NewAuthHandler(authUsecase)
 	_ = slotHandlers
-	_ = roomHandlers
-	_ = scheduleHandlers
 	_ = bookingHandlers
 
-	// init routes
 
 	// init server
 	r := gin.Default()
 
+	// init middleware
+	authorized := r.Group("/")
+	authorized.Use(middleware.AuthMiddleware(jwtManager, appLogger))
+
+	admin := authorized.Group("/")
+	admin.Use(middleware.RequireRole("admin"))
+
+	user := authorized.Group("/")
+	user.Use(middleware.RequireRole("user"))
+
+	// init routes
+	admin.POST("/rooms/create", roomHandlers.Create())	
+	authorized.GET("/rooms/list", roomHandlers.GetRooms())
+
+	admin.POST("/rooms/:roomId/schedule/create", scheduleHandlers.Create())
+	
 	r.Handle("GET", "/_info", handlers.Info)
 	r.Handle("POST", "/dummyLogin", authHandler.DummyLogin)
 

@@ -5,14 +5,16 @@ import (
 	"strings"
 	"test-backend-1-X1ag/internal/auth"
 	"test-backend-1-X1ag/internal/http/response"
+	"test-backend-1-X1ag/internal/logger"
 
 	"github.com/gin-gonic/gin"
 )
 
-func AuthMiddleware(jwtManager auth.TokenManager) gin.HandlerFunc {
+func AuthMiddleware(jwtManager auth.TokenManager, logger *logger.ZerologLogger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		header := c.GetHeader("Authorization")	
 		if header == "" {
+			logger.Error().Msg("missing authorization header")
 			response.JSONError(c, http.StatusUnauthorized, response.ErrorCodeUnauthorized, "missing authorization header")
 			c.Abort()
 			return
@@ -28,7 +30,8 @@ func AuthMiddleware(jwtManager auth.TokenManager) gin.HandlerFunc {
 
 		claims, err := jwtManager.Parse(token)
 		if err != nil {
-			response.JSONError(c, http.StatusUnauthorized, response.ErrorCodeUnauthorized, err.Error())
+			logger.Error().Err(err).Msg("invalid token")	
+			response.JSONError(c, http.StatusUnauthorized, response.ErrorCodeUnauthorized, "invalid token")
 			c.Abort()	
 			return
 		}
